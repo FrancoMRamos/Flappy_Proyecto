@@ -14,6 +14,11 @@ alto = 936
 ventana = pygame.display.set_mode((ancho, alto))
 pygame.display.set_caption('Flappy Bird')
 
+# Fuenta a mostrar para el puntaje
+fuente_boton = pygame.font.SysFont('Montserrat ExtraBold', 60)
+fuente_record = pygame.font.SysFont('Montserrat ExtraBold', 20)
+blanco = (255, 255, 255)
+
 # Definimos las variables del juego.
 posicion_suelo = 0
 suelo_velocidad = 4
@@ -22,10 +27,16 @@ game_over = False
 tuberia_espaciado = 150         #px
 tuberia_frecuencia = 1500        #milisegundos
 tuberia_ultima = pygame.time.get_ticks() - tuberia_frecuencia
+puntaje = 0
+tuberia_superada = False
 
 # Cargamos las imagenes
 bg = pygame.image.load('img/bg.png')
 suelo = pygame.image.load('img/ground.png')
+
+def mostrar_puntaje(texto, fuente, text_col, x, y):
+    img = fuente.render(texto, True, text_col)
+    ventana.blit(img, (x,y))
 
 # Realizamos una clase para el pájaro, en la que están los 3 sprites del mismo que nos ayudarán para su animación.
 class Bird(pygame.sprite.Sprite):
@@ -118,6 +129,19 @@ while run:
     # Agregando el suelo 
     ventana.blit(suelo, (posicion_suelo, 768))
 
+    if len(tuberia_group) > 0: 
+        if bird_group.sprites()[0].rect.left > tuberia_group.sprites()[0].rect.left\
+            and bird_group.sprites()[0].rect.right < tuberia_group.sprites()[0].rect.right\
+            and tuberia_superada == False:
+            tuberia_superada = True
+
+        if tuberia_superada == True:
+            if bird_group.sprites()[0].rect.left > tuberia_group.sprites()[0].rect.right:
+                puntaje += 1
+
+                tuberia_superada = False
+
+    mostrar_puntaje(str(puntaje),fuente_boton, blanco, int(ancho/2), 20)
     # Colision con las tuberias
     if pygame.sprite.groupcollide(bird_group, tuberia_group, False, False) or flappy.rect.top < 0:
         game_over = True
