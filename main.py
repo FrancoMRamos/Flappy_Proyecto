@@ -6,7 +6,7 @@ pygame.init()
 clock = pygame.time.Clock()     
 fps = 60        
 
-#Tamaño de la ventana :D 
+#Tamaño de la ventana
 ancho = 864
 alto = 936
 
@@ -56,7 +56,6 @@ bird_group = pygame.sprite.Group()
 flappy = Bird(100, int(alto / 2))
 
 bird_group.add(flappy)
-
 
 run = True
 while run:
