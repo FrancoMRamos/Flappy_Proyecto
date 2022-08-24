@@ -1,6 +1,6 @@
-import pygame       # Importamos la librería Pygame
+import pygame                   # Importamos la librería Pygame
 from pygame.locals import *     # Con esto estamos todos los módulos locales de Pygame
-import random       # Importamos la librería Random
+import random                   # Importamos la librería Random
 
 pygame.init()
 pygame.mixer.init()
@@ -26,14 +26,16 @@ suelo_velocidad = 4
 volar = False
 game_over = False
 obtencion = False
-tuberia_espaciado = 150         #px
-tuberia_frecuencia = 1500        #milisegundos
+tuberia_espaciado = 0         #px
+tuberia_frecuencia = 0        #milisegundos
 tuberia_ultima = pygame.time.get_ticks() - tuberia_frecuencia
 moneda_ultima = 0
 puntaje = 0
 monedas_contador = 0
 tuberia_superada = False
 musica_sonar = False
+main_menu = True
+seleccionado = " "
 
 archivos = open('archivos/puntaje.txt', 'r')
 mayor = archivos.read()
@@ -47,10 +49,17 @@ archivos.close()
 # Cargamos los assents
 bg = pygame.image.load('img/bg.png')
 suelo = pygame.image.load('img/ground.png')
-reintentar = pygame.image.load('img/reintento.png')
+reintentar = pygame.image.load('img/reintentar.png')
 rec = pygame.image.load("img/record.png")
+iniciar = pygame.image.load('img/iniciar.png')
+salir = pygame.image.load('img/salir.png')
+facil = pygame.image.load('img/facil.png')
+normal = pygame.image.load('img/normal.png')
+dificil = pygame.image.load('img/dificil.png')
 musica = pygame.mixer.music.load('sounds/fondo.mp3')
 moneda_sonido = pygame.mixer.Sound("sounds/moneda.mp3")
+
+
 
 # Creamos una función para mostrar el puntaje en la pantalla del juego
 def mostrar_puntaje(texto, fuente, text_col, x, y):
@@ -58,11 +67,14 @@ def mostrar_puntaje(texto, fuente, text_col, x, y):
     ventana.blit(img, (x,y))
 
 def reiniciar_juego():
+    global main_menu, musica_sonar
     tuberia_group.empty()
     moneda_group.empty()
     flappy.rect.x = 100
     flappy.rect.y = int(alto/2)
     puntaje = 0
+    main_menu = True
+    musica_sonar = False
     return puntaje
 
 def musica():
@@ -73,6 +85,17 @@ def musica():
     else:
         pygame.mixer.music.stop()
 
+def dificultad(seleccionado):
+    global tuberia_espaciado, tuberia_frecuencia
+    if seleccionado == "facil":
+        tuberia_espaciado = 250
+        tuberia_frecuencia = 1500 
+    elif seleccionado == "normal":
+        tuberia_espaciado = 150
+        tuberia_frecuencia = 1500 
+    elif seleccionado == "dificil":
+        tuberia_espaciado = 150 
+        tuberia_frecuencia = 1050
 
 # Realizamos una clase para el pájaro, en la que están los 3 sprites del mismo que nos ayudarán para su animación.
 class Bird(pygame.sprite.Sprite):
@@ -194,7 +217,7 @@ class Record():
     def mostrar(self):
         ventana.blit(self.image, (self.rect.x, self.rect.y))
 
-class Boton():
+class Boton_reinicio():
     def __init__(self, x, y, imagen):
         self.image = imagen
         self.rect = self.image.get_rect()
@@ -214,6 +237,30 @@ class Boton():
         
         return accion
 
+class Boton_menu():
+    def __init__(self, x, y, image):
+        self.image=image
+        self.rect=self.image.get_rect()
+        self.rect.x=x
+        self.rect.y=y
+        self.clicked=False
+    
+    def draw(self):
+        action = False
+
+        pos=pygame.mouse.get_pos() 
+
+        if self.rect.collidepoint(pos):
+            if pygame.mouse.get_pressed()[0] == 1 and self.clicked == False:
+                action = True
+                self.clicked = True
+        if pygame.mouse.get_pressed()[0]==0:
+            self.clicked = False
+
+        ventana.blit(self.image, self.rect)
+        return action
+
+
 bird_group = pygame.sprite.Group()
 tuberia_group = pygame.sprite.Group()
 moneda_group = pygame.sprite.Group()
@@ -221,8 +268,14 @@ moneda_group = pygame.sprite.Group()
 flappy = Bird(100, int(alto / 2))
 bird_group.add(flappy)
 
-boton = Boton(ancho // 2 - 50, alto // 2 - 100, reintentar)
-record = Record(ancho // 2 - 60, alto // 2 - 10, rec)
+boton = Boton_reinicio(ancho // 2 - 68, alto // 2 - 50, reintentar)
+record = Record(ancho // 2 - 60, alto // 2 - 110, rec)
+
+inicio_boton = Boton_menu(ancho//2 -50, alto//2 -80, iniciar)
+salir_boton = Boton_menu(ancho//2 -50, alto//2 , salir)
+facil_boton = Boton_menu(ancho//2 -50, alto//2 -40, facil)
+normal_boton = Boton_menu(ancho//2 -50, alto//2, normal)
+dificil_boton = Boton_menu(ancho//2 -50, alto//2 + 40, dificil)
 
 run = True
 while run:
@@ -238,88 +291,114 @@ while run:
     # Agregando el suelo 
     ventana.blit(suelo, (posicion_suelo, 768))
 
-    # Verificamos el puntaje
-    if len(tuberia_group) > 0: 
-        if bird_group.sprites()[0].rect.left > tuberia_group.sprites()[0].rect.left\
-            and bird_group.sprites()[0].rect.right < tuberia_group.sprites()[0].rect.right\
-            and tuberia_superada == False:
-            tuberia_superada = True
-    
-    
-        if tuberia_superada == True:
-            if bird_group.sprites()[0].rect.left > tuberia_group.sprites()[0].rect.right:
-                puntaje += 1
-                # Al superar el récord anterior, se escribe este nuevo récord dentro del archivo puntaje.txt
-                if puntaje > int(mayor):
-                    mayor = str(puntaje)
-                    archivos = open("archivos/puntaje.txt","w")
-                    archivos.write(mayor)
-                    archivos.close()
-                tuberia_superada = False
-
-    mostrar_puntaje(str(puntaje),fuente_boton, blanco, int(ancho / 2), 20)
-    ventana.blit(pygame.image.load('img/moneda_1.png'), (ancho - 100, alto - 80))
-    mostrar_puntaje("= " + str(monedas),fuente_record, blanco, ancho - 60, alto - 74)
-    # Colisión con las tuberias
-    if pygame.sprite.groupcollide(bird_group, tuberia_group, False, False) or flappy.rect.top < 0:
-        game_over = True
-
-    # Obtención de las monedas
-    if pygame.sprite.groupcollide(bird_group, moneda_group, False, False):
-        obtencion = True
-        
-
-    # Verificacion del personaje en el suelo 
-    if flappy.rect.bottom >= 768:
-        game_over = True
-        volar = False
-
-    if game_over == False and volar == True:
-        # creacion nuevas tuberias
-        tiempo_actual = pygame.time.get_ticks()
-        if tiempo_actual - tuberia_ultima > tuberia_frecuencia:
-            altura_tuberia = random.randint(-100, 100)
-            btm_tuberia = Tuberia(ancho, int(alto / 2) + altura_tuberia, -1)
-            top_tuberia = Tuberia(ancho, int(alto / 2) + altura_tuberia, 1)
-            tuberia_group.add(btm_tuberia)
-            tuberia_group.add(top_tuberia)
-            tuberia_ultima = tiempo_actual
-        
-        moneda_frecuencia = random.randint(2500, 5500)
-        if tiempo_actual - moneda_frecuencia > moneda_ultima and tiempo_actual - tuberia_ultima > 600:
-            altura_moneda = random.randint(30, alto - 200)
-            moneda_aparicion = Moneda(ancho, altura_moneda)
-            moneda_group.add(moneda_aparicion)
-            moneda_ultima = tiempo_actual
-
-        # Agregando movimiento al suelo  
-        posicion_suelo -= suelo_velocidad
-        
-        if abs(posicion_suelo) > 35:
-            posicion_suelo = 0
-            
-        moneda_group.update()
-        tuberia_group.update()
-        
-    else:
+    if main_menu == True:
         musica()
-    # Verificar el game over y el reintento
-    if game_over == True:
-       
-        record.mostrar()
-        
-        if boton.accionar() == True:
-            game_over = False
-            puntaje = reiniciar_juego()
-            
-        mostrar_puntaje(str( mayor),fuente_record, blanco, ancho // 2 + 40, alto // 2 -4)
+        if salir_boton.draw():
+            run = False
+        if inicio_boton.draw():
+            main_menu = False
+            seleccionar = True
+    else:
+            if seleccionar == True:
+                if facil_boton.draw():
+                    selec = "facil"
+                    dificultad(selec)
+                    seleccionar = False
+                elif normal_boton.draw():
+                    selec = "normal"
+                    dificultad(selec)
+                    seleccionar = False
+                elif dificil_boton.draw():
+                    selec = "dificil"
+                    dificultad(selec)
+                    seleccionar = False
+            else:
+                
+                # Verificamos el puntaje
+                if len(tuberia_group) > 0: 
+                    if bird_group.sprites()[0].rect.left > tuberia_group.sprites()[0].rect.left\
+                        and bird_group.sprites()[0].rect.right < tuberia_group.sprites()[0].rect.right\
+                        and tuberia_superada == False:
+                        tuberia_superada = True
+                
+                
+                    if tuberia_superada == True:
+                        if bird_group.sprites()[0].rect.left > tuberia_group.sprites()[0].rect.right:
+                            puntaje += 1
+                            # Al superar el récord anterior, se escribe este nuevo récord dentro del archivo puntaje.txt
+                            if puntaje > int(mayor):
+                                mayor = str(puntaje)
+                                archivos = open("archivos/puntaje.txt","w")
+                                archivos.write(mayor)
+                                archivos.close()
+                            tuberia_superada = False
 
-    # Para cerrar el programa, se deberá presionar la X de la ventana de Windows
+                mostrar_puntaje(str(puntaje),fuente_boton, blanco, int(ancho / 2), 20)
+                ventana.blit(pygame.image.load('img/moneda_1.png'), (ancho - 100, alto - 80))
+                mostrar_puntaje("= " + str(monedas),fuente_record, blanco, ancho - 60, alto - 74)
+                # Colisión con las tuberias
+                if pygame.sprite.groupcollide(bird_group, tuberia_group, False, False) or flappy.rect.top < 0:
+                    game_over = True
+
+                # Obtención de las monedas
+                if pygame.sprite.groupcollide(bird_group, moneda_group, False, False):
+                    obtencion = True
+                    
+
+                # Verificacion del personaje en el suelo 
+                if flappy.rect.bottom >= 768:
+                    game_over = True
+                    volar = False
+                
+                if game_over == False and volar == True:
+                    # creacion nuevas tuberias
+                    tiempo_actual = pygame.time.get_ticks()
+                    if tiempo_actual - tuberia_ultima > tuberia_frecuencia:
+                        altura_tuberia = random.randint(-100, 100)
+                        btm_tuberia = Tuberia(ancho, int(alto / 2) + altura_tuberia, -1)
+                        top_tuberia = Tuberia(ancho, int(alto / 2) + altura_tuberia, 1)
+                        tuberia_group.add(btm_tuberia)
+                        tuberia_group.add(top_tuberia)
+                        tuberia_ultima = tiempo_actual
+                    
+                    moneda_frecuencia = random.randint(2500, 5500)
+                    if tiempo_actual - moneda_frecuencia > moneda_ultima and tiempo_actual - tuberia_ultima > 600:
+                        altura_moneda = random.randint(180, alto - 180)
+                        moneda_aparicion = Moneda(ancho, altura_moneda)
+                        moneda_group.add(moneda_aparicion)
+                        moneda_ultima = tiempo_actual
+
+                    # Agregando movimiento al suelo  
+                    posicion_suelo -= suelo_velocidad
+                    
+                    if abs(posicion_suelo) > 35:
+                        posicion_suelo = 0
+                        
+                    moneda_group.update()
+                    tuberia_group.update()  
+                
+                # Verificar el game over y el reintento
+                if game_over == True:
+                
+                    record.mostrar()
+                    musica_sonar = True
+                    musica()
+                    if salir_boton.draw():
+                        run = False
+
+                    if boton.accionar() == True:
+                        game_over = False
+                        puntaje = reiniciar_juego()
+                        
+                    mostrar_puntaje(str( mayor),fuente_record, blanco, ancho // 2 + 40, alto // 2 -104)
+
+        # Para cerrar el programa, se deberá presionar la X de la ventana de Windows
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
-        if event.type == pygame.MOUSEBUTTONDOWN and volar == False and game_over == False:  #condicion de inicio
-            volar= True
+        if main_menu == False :
+            if event.type == pygame.MOUSEBUTTONDOWN and volar == False and game_over == False and seleccionar== False:  #condicion de inicio
+                volar= True
                         
 
     pygame.display.update()
