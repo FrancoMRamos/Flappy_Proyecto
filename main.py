@@ -5,6 +5,7 @@ from pygame.locals import *     # Con esto estamos todos los módulos locales de
 import random       # Importamos la librería Random
 
 pygame.init()
+pygame.mixer.init()
 
 clock = pygame.time.Clock()     # Para que se repita la imagen cada cierto tiempo
 fps = 60        
@@ -32,6 +33,7 @@ tuberia_ultima = pygame.time.get_ticks() - tuberia_frecuencia
 puntaje = 0
 mayor = 0
 tuberia_superada = False
+musica_sonar = False
 
 
 
@@ -40,7 +42,7 @@ tuberia_superada = False
 bg = pygame.image.load('img/bg.png')
 suelo = pygame.image.load('img/ground.png')
 reintentar = pygame.image.load('img/reintento.png')
-
+musica = pygame.mixer.music.load('sounds/fondo.mp3')
 rec = pygame.image.load("img/record.png")
 
 
@@ -54,7 +56,17 @@ def reiniciar_juego():
     flappy.rect.x = 100
     flappy.rect.y = int(alto/2)
     puntaje = 0
+    musica_sonar = False
     return puntaje
+
+def musica():
+    
+    if musica_sonar == False:
+        pygame.mixer.music.play(0, 0.15)
+        pygame.mixer.music.set_volume(0.07)
+    else:
+        pygame.mixer.music.stop()
+
 
 # Realizamos una clase para el pájaro, en la que están los 3 sprites del mismo que nos ayudarán para su animación.
 class Bird(pygame.sprite.Sprite):
@@ -163,9 +175,11 @@ flappy = Bird(100, int(alto / 2))
 bird_group.add(flappy)
 
 boton = Boton(ancho // 2 - 50, alto // 2 - 100, reintentar)
-record = Record(ancho // 2 - 57, alto // 2 - 10, rec)
+record = Record(ancho // 2 - 60, alto // 2 - 10, rec)
+
 
 run = True
+
 while run:
     
     clock.tick(fps)     # Este método nos ayudará a manejar la tasa de fotogramas del programa
@@ -223,23 +237,26 @@ while run:
             posicion_suelo = 0
 
         tuberia_group.update()
-
+    else:
+        musica()
     # Verificar el game over y el reintento
     if game_over == True:
-
+       
         record.mostrar()
         
         if boton.accionar() == True:
             game_over = False
             puntaje = reiniciar_juego()
+            
         mostrar_puntaje(str( mayor),fuente_record, blanco, ancho // 2 + 40, alto // 2 -4)
 
     # Para cerrar el programa, se deberá presionar la X de la ventana de Windows
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
-        if event.type == pygame.MOUSEBUTTONDOWN or event.type == pygame.K_DOWN and volar == False and game_over == False:  #condicion de inicio
+        if event.type == pygame.MOUSEBUTTONDOWN and volar == False and game_over == False:  #condicion de inicio
             volar= True
+                        
 
     pygame.display.update()
 
